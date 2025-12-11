@@ -1,0 +1,85 @@
+@import 'tailwindcss';
+
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --color-primary: #2a4947;
+  --color-secondary: #538890;
+  --color-accent: #e6f1eb;
+  --color-accent1: #bedacb;
+  --color-yellow: #a89c34;
+  --color-red: #dd8452;
+}
+/* @theme{
+  --color-primary: #2A4947;
+  --color-secondary: #538890;
+  --color-accent: #E6F1EB;
+} */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-green-primary: #2a4947;
+  --color-mist-green: #e6f1eb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+@media only screen and (min-width: 400px) {
+}
+.custom-header-center .ag-header-cell-label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+.ag-theme-balham .ag-header-cell .custom-filter-svg {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  fill: #2a4947;
+}
+.ag-theme-balham .ag-header-cell:hover .custom-filter-svg {
+  opacity: 1 !important;
+  pointer-events: auto;
+}
+.ag-theme-balham .ag-header-cell.ag-header-cell-filtered .custom-filter-svg {
+  opacity: 1 !important;
+  pointer-events: auto;
+  fill: #2a4947;
+}
+.ag-layout-auto-height .ag-center-cols-viewport,
+.ag-layout-auto-height .ag-center-cols-container {
+  min-height: 40px; 
+}
+.ag-theme-balham .ag-paging-panel * {
+  font-size: 12px;
+  font-weight: normal;
+}
+.ag-theme-balham .ag-root-wrapper {
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ag-theme-balham .ag-cell {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  user-select: text !important;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
