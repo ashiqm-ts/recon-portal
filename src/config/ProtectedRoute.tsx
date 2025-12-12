@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/router';
+import { useEffect, useMemo } from 'react';
 import axiosInstance from './axios';
+
 import { useDialog } from '@/provider/DialogProvider';
 import { useAuth } from '@/provider/AuthProvider';
-import { redirect } from 'next/navigation';
 import { getRegenerate } from './apiConfig';
 import { ApiResponse, useResponseHandler } from '@/components/store.js/useResponseHandler';
+import { filterNavigation, getAllowedPermissionIds } from '@/layout-components/sidebar/Sidebar';
+import { links, NavItem, noPermissionRoutes } from '@/layout-components/sidebar/NavigationConfig';
+import { usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -16,29 +19,86 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { handleLoader, handleResponse } = useDialog();
   const { handleApiResponse } = useResponseHandler();
-  const { user, setTokenDetails, setUser } = useAuth();
+  const { user, setTokenDetails } = useAuth();
+  const router = useRouter();
+
+  const pathname = usePathname();
+
+  const extractUrls = (menu: NavItem[]) => {
+    const urls: string[] = [];
+
+    const loop = (items: any[]) => {
+      items.forEach((item) => {
+        if (item.to) urls.push(item.to);
+        if (item.children?.length) loop(item.children);
+      });
+    };
+
+    loop(menu);
+    return urls;
+  };
+
+  const allowedIds = useMemo(() => getAllowedPermissionIds(user?.rolePermissions || []), [user]);
+
+  const allowedMenu = useMemo(() => filterNavigation(links, allowedIds), [allowedIds]);
+
+  const allowedRoutes = useMemo(() => extractUrls(allowedMenu), [allowedMenu]);
+
+  console.log('allowedMenu →', allowedMenu);
+  console.log('allowedRoutes →', allowedRoutes);
+
+  useEffect(() => {
+    if (!user) return;
+    if (allowedRoutes.length === 0) return;
+
+    const clean = (str: string) => str.replace(/\/+$/, '');
+
+    const current = clean(pathname);
+
+    const isNoPermissionRoute = noPermissionRoutes.some((route) => current.startsWith(clean(route)));
+
+    if (isNoPermissionRoute) {
+      return;
+    }
+    if (current === '/unauthorized') return;
+    const isAllowed = allowedRoutes.some((route) => current.startsWith(clean(route)));
+    if (!isAllowed) {
+      router.replace('/unauthorized');
+    }
+  }, [pathname, allowedRoutes, user]);
+
   let pendingRequests = 0;
+
   const getRegenerateToken = async (payload) => {
     const res = await getRegenerate(payload);
+
     handleApiResponse({
       response: res?.data as ApiResponse,
       onSuccess: () => {
         axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${res.data.data.token}`;
+
         axiosInstance.defaults.headers.common['instnId'] = 1;
         axiosInstance.defaults.headers.common['channel'] = '01';
-        setTokenDetails({ token: res.data.data.token, refreshToken: res.data.data.refreshToken });
+
+        setTokenDetails({
+          token: res.data.data.token,
+          refreshToken: res.data.data.refreshToken,
+        });
       },
     });
+
+    return res;
   };
+
   const TokenExpiry = async () => {
     setTokenDetails({ token: null, refreshToken: null });
+
     delete axiosInstance.defaults.headers.common.Authorization;
-    sessionStorage.removeItem('token');
-    sessionStorage.removeItem('refreshToken');
-    sessionStorage.removeItem('instnId');
-    sessionStorage.removeItem('parentId');
-    await redirect('/sign-in');
-    handleResponse(true, 'Access Timeout: Please log in again to proceed');
+
+    sessionStorage.clear();
+
+    router.replace('/sign-in');
+    handleResponse('Access Timeout: Please log in again to proceed', true);
   };
 
   const setupAxiosInterceptors = () => {
@@ -55,54 +115,39 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
         if (pendingRequests === 0) handleLoader(false);
         return response;
       },
+
       async (error) => {
         pendingRequests = Math.max(0, pendingRequests - 1);
         if (pendingRequests === 0) handleLoader(false);
-        console.log('Session expired. Redirecting to login..."', error);
 
         const originalRequest = error.config;
-        console.log('Original Req,', originalRequest);
 
-        if (error.response && error.response.status === 401 && !originalRequest._retry) {
-          handleLoader(false);
-          console.log(error.config);
+        if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
+
           try {
-            console.log('try block');
-            delete axiosInstance.defaults.headers.common.Authorization;
+            const refreshToken = sessionStorage.getItem('refreshToken');
 
-            const refreshTokenFromSession = sessionStorage.getItem('refreshToken');
-            console.log('try block 2');
+            if (!refreshToken) return TokenExpiry();
 
-            const data: { loginUserName: string; refreshToken: string } = {
-              refreshToken: refreshTokenFromSession,
+            const res = await getRegenerateToken({
+              refreshToken,
               loginUserName: user?.loginUsername,
-            };
-            if (refreshTokenFromSession !== null) {
-              const res = await getRegenerateToken(data);
-              console.log(res.data);
-              if (res.data.responseCode === 0) {
-                axiosInstance.defaults.headers.common.Authorization = `Bearer ${res.data.data.token}`;
-                setTokenDetails({ token: res?.data?.data?.token, refreshToken: res?.data?.data?.refreshToken });
+            });
 
-                originalRequest.headers.Authorization = `Bearer ${res.data.data.token}`;
-                return axiosInstance(originalRequest);
-              } else if (res.data.responseCode === 197) {
-                TokenExpiry();
-              } else {
-                TokenExpiry();
-              }
-            } else {
-              console.log('Test');
-              TokenExpiry();
+            if (res.data.responseCode === 0) {
+              originalRequest.headers.Authorization = `Bearer ${res.data.data.token}`;
+
+              return axiosInstance(originalRequest);
             }
+
+            return TokenExpiry();
           } catch (err) {
-            console.log('Test2');
-            TokenExpiry();
+            return TokenExpiry();
           }
-        } else {
-          handleResponse('Service is currently unavailable. Please try again later', true);
         }
+
+        handleResponse('Service unavailable. Try later.', true);
         return Promise.reject(error);
       }
     );
@@ -114,9 +159,9 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   };
 
   useEffect(() => {
-    const cleanupInterceptors = setupAxiosInterceptors();
-    return cleanupInterceptors;
-  }, [handleLoader, handleResponse]);
+    const cleanup = setupAxiosInterceptors();
+    return cleanup;
+  }, []);
 
   return <>{children}</>;
 }

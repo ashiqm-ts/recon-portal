@@ -1,7 +1,7 @@
 version: '3.9'
 services:
-  reconcile-web:
-    container_name: reconcile
+  recon:
+    container_name: recon-web-portal
     build:
       context: .
       dockerfile: Dockerfile

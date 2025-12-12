@@ -11,6 +11,42 @@ import { useNavigation } from '@/provider/NavigationContext';
 import { usePageStateStore } from '@/components/store.js/usePageStateStore';
 import { useDialogStore } from '@/components/store.js/useDialogStore';
 import Image from 'next/image';
+import { useAuth } from '@/provider/AuthProvider';
+
+export const getAllowedPermissionIds = (rolePermissions: any[] = []) => {
+  const ids = new Set<string>();
+
+  rolePermissions.forEach((perm) => {
+     if (perm.permissionId) ids.add(perm.permissionId);
+     if (Array.isArray(perm.children)) {
+      perm.children.forEach((childId: string) => ids.add(childId));
+    }
+  });
+
+  return Array.from(ids);
+};
+
+export const filterNavigation = (menu: NavItem[], allowedIds: string[]): NavItem[] => {
+  return menu
+    .map((item) => {
+      const hasAccess = allowedIds.includes(item.permissionId || '');
+
+      if (item.children) {
+        const filteredChildren = filterNavigation(item.children, allowedIds);
+
+        if (filteredChildren.length > 0 || hasAccess) {
+          return {
+            ...item,
+            children: filteredChildren,
+          };
+        }
+        return null;
+      }
+
+      return hasAccess ? item : null;
+    })
+    .filter(Boolean) as NavItem[];
+};
 
 export default function Sidebar(): ReactNode {
   const theme = useTheme();
@@ -21,6 +57,11 @@ export default function Sidebar(): ReactNode {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const { startLoading } = useNavigation();
   const { closeDialog } = useDialogStore();
+
+  const { user } = useAuth();
+  const allowedIds = useMemo(() => getAllowedPermissionIds(user?.rolePermissions || []), [user]);
+  const allowedMenu = useMemo(() => filterNavigation(links, allowedIds), [allowedIds]);
+  
 
   const handleToggle = useCallback((label: string) => {
     setOpenMenu((prev) => (prev === label ? null : label));
@@ -89,7 +130,7 @@ export default function Sidebar(): ReactNode {
 
   const renderMenu = useMemo(
     () =>
-      links?.map((item: NavItem) => {
+      allowedMenu?.map((item: NavItem) => {
         const hasChildren = Boolean(item.children?.length);
         const isChildActive = hasChildren && item.children?.some((child) => pathname === child.to);
 
@@ -135,7 +176,7 @@ export default function Sidebar(): ReactNode {
                 selected={pathname === item.to}
                 sx={{
                   ...activeItemStyle,
-                  
+
                   pl: 1,
                   cursor: pathname === item.to ? 'default' : 'pointer',
                 }}
@@ -151,7 +192,7 @@ export default function Sidebar(): ReactNode {
           </Fragment>
         );
       }),
-    [links, pathname, openMenu, handleToggle, renderChild, activeItemStyle, mobScreen]
+    [allowedMenu, pathname, openMenu, handleToggle, renderChild, activeItemStyle, mobScreen]
   );
 
   return (

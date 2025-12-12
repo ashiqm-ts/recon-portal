@@ -1,20 +1,20 @@
 'use client';
+
 import MuiButton from '@/components/mui-components/button/MuiButton';
 import FormikController from '@/components/mui-components/formik-controller/FormikController';
 import MuiTypography from '@/components/mui-components/typography/MuiTypography';
 import { useResponseHandler } from '@/components/store.js/useResponseHandler';
-import { changePassword, forgotPassword, modifyUserPassword } from '@/config/apiConfig';
+import { modifyUserPassword } from '@/config/apiConfig';
 import { useAuth } from '@/provider/AuthProvider';
-import { Box, Card, Grid, Typography } from '@mui/material';
-import { Form, Formik } from 'formik';
-import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { Box, Card, Divider, Grid } from '@mui/material';
+import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
+import type { ReactNode } from 'react';
 
 export default function Profile(): ReactNode {
   const { handleApiResponse } = useResponseHandler();
   const { user } = useAuth();
+
   const initialValuesPassword = {
     oldPassword: '',
     newPassword: '',
@@ -33,11 +33,8 @@ export default function Profile(): ReactNode {
       .required('Required')
       .oneOf([Yup.ref('newPassword'), null], 'Passwords must match'),
   });
-  const searchParams = new URLSearchParams(document.location.search);
-  const token = encodeURI(searchParams.get('token'));
-  console.log(token);
+
   const handleSubmit = async (values) => {
-    console.log(values);
     const payload = {
       loginUserName: user?.loginUsername,
       oldPassword: values.oldPassword,
@@ -49,65 +46,69 @@ export default function Profile(): ReactNode {
       showSuccessMessage: true,
     });
   };
+
   return (
-    <Box className="flex">
-      <Box sx={{ margin: '12px', width: '50% ' }}>
-        <Card className="w-full rounded min-h-[480px] ">
-          <Box className="flex justify-between">
-            <Box className="flex justify-startfont-bold text-xl flex items-center" sx={{ marginLeft: '10px', marginTop: '10px' }}>
-              <MuiTypography>Profile Details</MuiTypography>
-            </Box>
-          </Box>
+    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', padding: 2 }}>
+      <Box sx={{ flex: '1 1 45%', minWidth: 300 }}>
+        <Card sx={{ padding: 3, borderRadius: 2, minHeight: 500 }}>
+          <MuiTypography variant="h5">Profile Details</MuiTypography>
+          <Divider sx={{ marginBottom: 3 }} />
+
           <Formik initialValues={user ?? {}} onSubmit={() => {}}>
-            <Grid container spacing={5} sx={{ padding: '12px' }}>
-              <Grid size={{ xs: 6 }}>
-                <FormikController control="textField" name="userId" disabled label="User ID" required />
+            <Form>
+              <Grid container spacing={3}  >
+                <Grid size={{ xs: 6 }}>
+                  <FormikController control="textField" name="userId" label="User ID" disabled />
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <FormikController control="textField" name="roleName" label="Role Name" disabled />
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <FormikController control="textField" name="firstName" label="First Name" disabled />
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <FormikController control="textField" name="lastName" label="Last Name" disabled />
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <FormikController control="textField" name="email" label="Email" disabled />
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <FormikController control="textField" name="mobile" label="Mobile" disabled />
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <FormikController control="textField" name="loginUsername" label="Username" disabled />
+                </Grid>
               </Grid>
-              <Grid size={{ xs: 6 }}>
-                <FormikController control="textField" name="roleName" disabled label="Role Name" required />
-              </Grid>
-              <Grid size={{ xs: 6 }}>
-                <FormikController control="textField" name="firstName" disabled label="First Name" required />
-              </Grid>
-              <Grid size={{ xs: 6 }}>
-                <FormikController control="textField" name="lastName" disabled label="Last Name" required />
-              </Grid>
-              <Grid size={{ xs: 6 }}>
-                <FormikController control="textField" name="email" disabled label="Email" required />
-              </Grid>
-              <Grid size={{ xs: 6 }}>
-                <FormikController control="textField" name="mobile" disabled label="Mobile" required />
-              </Grid>
-              <Grid size={{ xs: 6 }}>
-                <FormikController control="textField" name="loginUsername" disabled label="User Name" required />
-              </Grid>
-            </Grid>
+            </Form>
           </Formik>
         </Card>
       </Box>
-      <Box sx={{ margin: '12px', width: '50% ' }}>
-        <Card className="w-full  rounded min-h-[480px] ">
-          <Box className="flex justify-between">
-            <Box className="flex justify-startfont-bold text-xl flex items-center" sx={{ marginLeft: '10px', marginTop: '10px' }}>
-              <MuiTypography>Password Management</MuiTypography>
-            </Box>
-          </Box>
+
+      <Box sx={{ flex: '1 1 45%', minWidth: 300 }}>
+        <Card sx={{ padding: 3, borderRadius: 2, minHeight: 500 }}>
+          <MuiTypography variant="h5">Password Management</MuiTypography>
+          <Divider sx={{ marginBottom: 3 }} />
+
           <Formik initialValues={initialValuesPassword} validationSchema={validationSchema} onSubmit={handleSubmit}>
-            <Grid container spacing={5} sx={{ padding: '12px' }}>
-              <Grid size={{ xs: 6 }}>
-                <FormikController control="textField" name="oldPassword" label="Old Password" required />
+            <Form>
+              <Grid container spacing={3}>
+                <Grid size={{ xs: 6 }}>
+                  <FormikController control="textField" name="oldPassword" label="Old Password" type="password" required />
+                </Grid>
+                <Grid size={{ xs: 6 }}></Grid>
+                <Grid size={{ xs: 6 }}>
+                  <FormikController control="textField" name="newPassword" label="New Password" type="password" required />
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <FormikController control="textField" name="confirmPassword" label="Confirm Password" type="password" required />
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <MuiButton type="submit" variant="contained">
+                    Change Password
+                  </MuiButton>
+                </Grid>
               </Grid>
-              <Grid size={{ xs: 6 }}></Grid>
-              <Grid size={{ xs: 6 }}>
-                <FormikController control="textField" name="newPassword" label="New Password" required />
-              </Grid>
-              <Grid size={{ xs: 6 }}>
-                <FormikController control="textField" name="confirmPassword" label="Confirm Password" required />
-              </Grid>
-              <Grid size={{ xs: 6 }}>
-                <MuiButton type="submit">Change Password</MuiButton>
-              </Grid>
-            </Grid>
+            </Form>
           </Formik>
         </Card>
       </Box>

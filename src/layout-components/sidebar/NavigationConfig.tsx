@@ -15,30 +15,41 @@ import Image from 'next/image';
 
 export type NavItem = {
   label: string;
+  permissionId: string;
   to?: string;
   icon?: any;
   children?: NavItem[];
 };
 
+
 export const links: NavItem[] = [
   {
     label: 'User Role Management',
+    permissionId: 'P00025',
     icon: ManageAccountsIcon,
     to: '/user-role-management',
     children: [
-      { label: 'Users', to: '/user-role-management/users', icon: PersonAddAltIcon },
-      { label: 'Roles', to: '/user-role-management/roles', icon: SupervisedUserCircleIcon },
-      { label: 'User Group', to: '/user-role-management/user-group', icon: GroupAddIcon },
+      { label: 'Users',permissionId: 'P00026', to: '/user-role-management/users', icon: PersonAddAltIcon },
+      { label: 'Roles',permissionId: 'P00027', to: '/user-role-management/roles', icon: SupervisedUserCircleIcon },
+      { label: 'User Group', permissionId: 'P00028',to: '/user-role-management/user-group', icon: GroupAddIcon },
     ],
   },
   {
     label: 'File Reconciliation',
     icon: FileCopyIcon,
+    permissionId: 'P00084',
     to: '/file-reconciliation',
   },
-   {
+  {
     label: 'Notification Settings',
     icon: NotificationsIcon,
+    permissionId: 'P00001',
     to: '/notification-settings',
   },
+];
+ export const noPermissionRoutes = [
+  "/sign-in",
+  "/forgot-password",
+  "/profile",
+  "/recon-force-change-password"
 ];
